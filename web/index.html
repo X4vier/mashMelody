@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Mouse Trail Canvas</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #333;
+      }
+      canvas {
+        display: block;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script type="module">
+      import { MouseTrailEffect } from "./mouseTrail.js";
+      document.addEventListener("DOMContentLoaded", () => {
+        new MouseTrailEffect("canvas");
+      });
+    </script>
+  </body>
+</html>

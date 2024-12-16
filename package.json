@@ -1,0 +1,72 @@
+{
+  "name": "mashmelody",
+  "productName": "Mash Melody",
+  "version": "1.0.0",
+  "description": "A creative mouse trail application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "pnpm run build:ts && electron-builder --mac",
+    "generate-icons": "node icon_generation/exportIcons.mjs && iconutil -c icns icon.iconset",
+    "build:ts": "tsc",
+    "watch:ts": "tsc -w",
+    "serve": "http-server . -c-1",
+    "dev": "concurrently \"pnpm run watch:ts\" \"pnpm run serve\"",
+    "build:dmg": "pnpm run build:ts && electron-builder --mac dmg"
+  },
+  "build": {
+    "appId": "com.example.mashmelody",
+    "productName": "MashMelody",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "web/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.games",
+      "icon": "build/icon.icns",
+      "target": [
+        "zip",
+        "dmg"
+      ],
+      "hardenedRuntime": false,
+      "fullscreen": true
+    },
+    "dmg": {
+      "sign": false,
+      "format": "ULFO",
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/electron": "^1.6.12",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "sharp": "^0.33.5",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.7.2",
+    "http-server": "^14.1.1",
+    "concurrently": "^8.2.2"
+  }
+}
