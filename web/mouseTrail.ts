@@ -14,25 +14,9 @@ export class MouseTrailEffect {
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
     this.lastPointDeletionTime = performance.now();
-    this.startPolling();
-    this.loop();
   }
 
-  private startPolling(): void {
-    // Clear any existing poll timer
-    if (this.pollTimer !== null) {
-      window.clearInterval(this.pollTimer);
-    }
-
-    // Start polling for mouse position
-    this.pollTimer = window.setInterval(() => {
-      if (this.lastMousePosition) {
-        this.addPoints(this.lastMousePosition.x, this.lastMousePosition.y);
-      }
-    }, this.pollInterval);
-  }
-
-  private loop(): void {
+  public loop(): void {
     const currentTime = performance.now();
     const deltaTime = (currentTime - this.lastPointDeletionTime) / 1000;
     let pointsToRemove = Math.round(this.minPointsPerSecond * deltaTime);
@@ -51,9 +35,6 @@ export class MouseTrailEffect {
       this.points.splice(0, Math.min(pointsToRemove, this.points.length));
       this.lastPointDeletionTime = currentTime;
     }
-
-    this.draw();
-    window.requestAnimationFrame(this.loop.bind(this));
   }
 
   public addPoints(x: number, y: number): void {
@@ -81,16 +62,7 @@ export class MouseTrailEffect {
     }
   }
 
-  private handleMouseMove(e: MouseEvent): void {
-    this.addPoints(e.clientX, e.clientY);
-  }
-
   public draw(): void {
-    // Clear canvas with fade effect
-    this.ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-    this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-
-    // Draw trail
     for (let i = 0; i < this.points.length; i++) {
       const point = this.points[i];
 

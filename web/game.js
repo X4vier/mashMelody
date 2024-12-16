@@ -1,4 +1,5 @@
 import { MouseTrailEffect } from "./mouseTrail.js";
+import { KeyboardEffect } from "./keyboard.js";
 export class Game {
     constructor(canvasId) {
         this.pollInterval = 16; // ~60fps
@@ -11,9 +12,17 @@ export class Game {
         }
         this.ctx = context;
         this.mouseTrail = new MouseTrailEffect(context);
+        this.keyboardEffect = new KeyboardEffect(context);
         this.setupCanvas();
         this.bindEvents();
         this.startPolling();
+        this.loop();
+    }
+    loop() {
+        this.mouseTrail.loop();
+        this.keyboardEffect.loop();
+        this.draw();
+        window.requestAnimationFrame(this.loop.bind(this));
     }
     startPolling() {
         // Clear any existing poll timer
@@ -50,6 +59,10 @@ export class Game {
                 this.lastMousePosition = null;
             }
         });
+        // Handle keyboard events
+        document.addEventListener("keypress", (e) => {
+            this.keyboardEffect.handleKeyPress(e);
+        });
     }
     handleMouseMove(e) {
         this.mouseTrail.addPoints(e.clientX, e.clientY);
@@ -61,6 +74,7 @@ export class Game {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         // Draw trail
         this.mouseTrail.draw();
+        this.keyboardEffect.draw();
     }
     // Add cleanup method
     dispose() {

@@ -10,20 +10,6 @@ export class MouseTrailEffect {
         this.pollTimer = null;
         this.ctx = ctx;
         this.lastPointDeletionTime = performance.now();
-        this.startPolling();
-        this.loop();
-    }
-    startPolling() {
-        // Clear any existing poll timer
-        if (this.pollTimer !== null) {
-            window.clearInterval(this.pollTimer);
-        }
-        // Start polling for mouse position
-        this.pollTimer = window.setInterval(() => {
-            if (this.lastMousePosition) {
-                this.addPoints(this.lastMousePosition.x, this.lastMousePosition.y);
-            }
-        }, this.pollInterval);
     }
     loop() {
         const currentTime = performance.now();
@@ -40,8 +26,6 @@ export class MouseTrailEffect {
             this.points.splice(0, Math.min(pointsToRemove, this.points.length));
             this.lastPointDeletionTime = currentTime;
         }
-        this.draw();
-        window.requestAnimationFrame(this.loop.bind(this));
     }
     addPoints(x, y) {
         const lastPoint = this.points[this.points.length - 1];
@@ -64,14 +48,7 @@ export class MouseTrailEffect {
             }
         }
     }
-    handleMouseMove(e) {
-        this.addPoints(e.clientX, e.clientY);
-    }
     draw() {
-        // Clear canvas with fade effect
-        this.ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-        this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-        // Draw trail
         for (let i = 0; i < this.points.length; i++) {
             const point = this.points[i];
             this.ctx.beginPath();

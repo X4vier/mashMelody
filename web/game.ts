@@ -1,4 +1,5 @@
 import { MouseTrailEffect } from "./mouseTrail.js";
+import { KeyboardEffect } from "./keyboard.js";
 
 export type Point = {
   x: number;
@@ -13,6 +14,7 @@ export class Game {
   private lastMousePosition: Point | null = null;
 
   private mouseTrail: MouseTrailEffect;
+  private keyboardEffect: KeyboardEffect;
 
   constructor(canvasId: string) {
     this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -22,9 +24,19 @@ export class Game {
     }
     this.ctx = context;
     this.mouseTrail = new MouseTrailEffect(context);
+    this.keyboardEffect = new KeyboardEffect(context);
     this.setupCanvas();
     this.bindEvents();
     this.startPolling();
+    this.loop();
+  }
+
+  private loop(): void {
+    this.mouseTrail.loop();
+    this.keyboardEffect.loop();
+
+    this.draw();
+    window.requestAnimationFrame(this.loop.bind(this));
   }
 
   private startPolling(): void {
@@ -69,6 +81,11 @@ export class Game {
         this.lastMousePosition = null;
       }
     });
+
+    // Handle keyboard events
+    document.addEventListener("keypress", (e: KeyboardEvent) => {
+      this.keyboardEffect.handleKeyPress(e);
+    });
   }
 
   private handleMouseMove(e: MouseEvent): void {
@@ -83,6 +100,7 @@ export class Game {
 
     // Draw trail
     this.mouseTrail.draw();
+    this.keyboardEffect.draw();
   }
 
   // Add cleanup method
