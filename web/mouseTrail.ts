@@ -1,10 +1,6 @@
-type Point = {
-  x: number;
-  y: number;
-};
+import type { Point } from "./game.js";
 
 export class MouseTrailEffect {
-  private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private points: Point[] = [];
   private readonly minPointsPerSecond: number = 1000;
@@ -15,15 +11,8 @@ export class MouseTrailEffect {
   private pollInterval: number = 16; // ~60fps
   private pollTimer: number | null = null;
 
-  constructor(canvasId: string) {
-    this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
-    const context = this.canvas.getContext("2d");
-    if (!context) {
-      throw new Error("Could not get 2D context from canvas");
-    }
-    this.ctx = context;
-    this.setupCanvas();
-    this.bindEvents();
+  constructor(ctx: CanvasRenderingContext2D) {
+    this.ctx = ctx;
     this.lastPointDeletionTime = performance.now();
     this.startPolling();
     this.loop();
@@ -67,34 +56,7 @@ export class MouseTrailEffect {
     window.requestAnimationFrame(this.loop.bind(this));
   }
 
-  private setupCanvas(): void {
-    const resizeCanvas = () => {
-      this.canvas.width = window.innerWidth;
-      this.canvas.height = window.innerHeight;
-    };
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-  }
-
-  private bindEvents(): void {
-    // Track mouse position even when not moving
-    document.addEventListener("mousemove", (e: MouseEvent) => {
-      this.lastMousePosition = {
-        x: e.clientX,
-        y: e.clientY,
-      };
-      this.handleMouseMove(e);
-    });
-
-    // Handle when mouse leaves the window
-    document.addEventListener("mouseout", (e: MouseEvent) => {
-      if (e.relatedTarget === null) {
-        this.lastMousePosition = null;
-      }
-    });
-  }
-
-  private addPoints(x: number, y: number): void {
+  public addPoints(x: number, y: number): void {
     const lastPoint = this.points[this.points.length - 1];
 
     if (!lastPoint) {
@@ -121,13 +83,12 @@ export class MouseTrailEffect {
 
   private handleMouseMove(e: MouseEvent): void {
     this.addPoints(e.clientX, e.clientY);
-    this.draw();
   }
 
-  private draw(): void {
+  public draw(): void {
     // Clear canvas with fade effect
     this.ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
     // Draw trail
     for (let i = 0; i < this.points.length; i++) {
@@ -146,13 +107,6 @@ export class MouseTrailEffect {
 
       this.ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
       this.ctx.fill();
-    }
-  }
-
-  // Add cleanup method
-  public dispose(): void {
-    if (this.pollTimer !== null) {
-      window.clearInterval(this.pollTimer);
     }
   }
 }

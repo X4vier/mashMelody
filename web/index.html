@@ -29,7 +29,7 @@
     <canvas id="canvas"></canvas>
     <div id="exit-hint">type "exit" to close the program</div>
     <script type="module">
-      import { MouseTrailEffect } from "./mouseTrail.js";
+      import { Game } from "./game.js";
 
       document.addEventListener("DOMContentLoaded", () => {
         // Show exit hint only in Electron environment
@@ -37,7 +37,7 @@
           document.getElementById("exit-hint").style.display = "block";
         }
 
-        new MouseTrailEffect("canvas");
+        new Game("canvas");
       });
     </script>
   </body>
