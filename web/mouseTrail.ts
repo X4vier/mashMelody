@@ -9,6 +9,7 @@ export class MouseTrailEffect {
   private points: Point[] = [];
   private readonly minPointsPerSecond: number = 1000;
   private headHue = 0;
+  private readonly hueStep = 0.1;
   private lastPointDeletionTime: number = 0;
   private lastMousePosition: Point | null = null;
   private pollInterval: number = 16; // ~60fps
@@ -51,7 +52,7 @@ export class MouseTrailEffect {
     const remainingPoints = this.points.length - pointsToRemove;
     if (remainingPoints > 300) {
       const excess = remainingPoints - 300;
-      const exponentialFactor = Math.pow(1.06, excess / 50);
+      const exponentialFactor = Math.pow(1.04, excess / 50);
       pointsToRemove += Math.round(
         this.minPointsPerSecond * deltaTime * (exponentialFactor - 1)
       );
@@ -113,7 +114,7 @@ export class MouseTrailEffect {
           x: lastPoint.x + dx * ratio,
           y: lastPoint.y + dy * ratio,
         });
-        this.headHue = (360 + this.headHue - 1) % 360;
+        this.headHue = (360 + this.headHue - this.hueStep) % 360;
       }
     }
   }
@@ -134,7 +135,7 @@ export class MouseTrailEffect {
 
       this.ctx.beginPath();
 
-      const hueOffset = this.points.length - 1 - i;
+      const hueOffset = (this.points.length - 1 - i) * this.hueStep;
       this.ctx.fillStyle = `hsl(${
         (this.headHue + hueOffset) % 360
       }, 100%, 50%)`;
