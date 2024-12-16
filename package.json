@@ -32,8 +32,7 @@
         "zip",
         "dmg"
       ],
-      "hardenedRuntime": false,
-      "fullscreen": true
+      "hardenedRuntime": false
     },
     "dmg": {
       "sign": false,

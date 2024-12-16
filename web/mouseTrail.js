@@ -1,9 +1,12 @@
 export class MouseTrailEffect {
     constructor(canvasId) {
         this.points = [];
-        this.minPointsPerSecond = 1000; // Number of points to remove per second
+        this.minPointsPerSecond = 1000;
         this.headHue = 0;
         this.lastPointDeletionTime = 0;
+        this.lastMousePosition = null;
+        this.pollInterval = 16; // ~60fps
+        this.pollTimer = null;
         this.canvas = document.getElementById(canvasId);
         const context = this.canvas.getContext("2d");
         if (!context) {
@@ -13,18 +16,31 @@ export class MouseTrailEffect {
         this.setupCanvas();
         this.bindEvents();
         this.lastPointDeletionTime = performance.now();
+        this.startPolling();
         this.loop();
+    }
+    startPolling() {
+        // Clear any existing poll timer
+        if (this.pollTimer !== null) {
+            window.clearInterval(this.pollTimer);
+        }
+        // Start polling for mouse position
+        this.pollTimer = window.setInterval(() => {
+            if (this.lastMousePosition) {
+                this.addPoints(this.lastMousePosition.x, this.lastMousePosition.y);
+            }
+        }, this.pollInterval);
     }
     loop() {
         const currentTime = performance.now();
-        const deltaTime = (currentTime - this.lastPointDeletionTime) / 1000; // Convert to seconds
-        // Calculate base points to remove based on time
+        const deltaTime = (currentTime - this.lastPointDeletionTime) / 1000;
         let pointsToRemove = Math.round(this.minPointsPerSecond * deltaTime);
-        // Add exponential removal when over 300 points
-        if (this.points.length > 300) {
-            const excess = this.points.length - 300;
-            const exponentialFactor = Math.pow(1.1, excess / 50); // Gradually increase removal rate
-            pointsToRemove = Math.round(pointsToRemove * exponentialFactor);
+        // Only calculate excess if we still have too many points after base removal
+        const remainingPoints = this.points.length - pointsToRemove;
+        if (remainingPoints > 300) {
+            const excess = remainingPoints - 300;
+            const exponentialFactor = Math.pow(1.06, excess / 50);
+            pointsToRemove += Math.round(this.minPointsPerSecond * deltaTime * (exponentialFactor - 1));
         }
         if (this.points.length > 0 && pointsToRemove > 0) {
             this.points.splice(0, Math.min(pointsToRemove, this.points.length));
@@ -42,24 +58,32 @@ export class MouseTrailEffect {
         window.addEventListener("resize", resizeCanvas);
     }
     bindEvents() {
-        this.canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
-    }
-    handleMouseMove(e) {
-        const lastPoint = this.points[this.points.length - 1];
-        if (!lastPoint) {
-            // First point
-            this.points.push({
+        // Track mouse position even when not moving
+        document.addEventListener("mousemove", (e) => {
+            this.lastMousePosition = {
                 x: e.clientX,
                 y: e.clientY,
-            });
+            };
+            this.handleMouseMove(e);
+        });
+        // Handle when mouse leaves the window
+        document.addEventListener("mouseout", (e) => {
+            if (e.relatedTarget === null) {
+                this.lastMousePosition = null;
+            }
+        });
+    }
+    addPoints(x, y) {
+        const lastPoint = this.points[this.points.length - 1];
+        if (!lastPoint) {
+            this.points.push({ x, y });
+            return;
         }
-        else if (lastPoint.x !== e.clientX || lastPoint.y !== e.clientY) {
-            // Calculate distance between last point and current position
-            const dx = e.clientX - lastPoint.x;
-            const dy = e.clientY - lastPoint.y;
+        if (lastPoint.x !== x || lastPoint.y !== y) {
+            const dx = x - lastPoint.x;
+            const dy = y - lastPoint.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            // If distance is large, interpolate points
-            const steps = Math.floor(distance / 2); // Add a point every 2 pixels
+            const steps = Math.floor(distance);
             for (let i = 1; i <= steps; i++) {
                 const ratio = i / steps;
                 this.points.push({
@@ -69,25 +93,32 @@ export class MouseTrailEffect {
                 this.headHue = (360 + this.headHue - 1) % 360;
             }
         }
+    }
+    handleMouseMove(e) {
+        this.addPoints(e.clientX, e.clientY);
         this.draw();
     }
     draw() {
         // Clear canvas with fade effect
-        this.ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+        this.ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         // Draw trail
         for (let i = 0; i < this.points.length; i++) {
             const point = this.points[i];
             this.ctx.beginPath();
-            // Create rainbow effect starting from back of list
-            const hueOffset = this.points.length - 1 - i; // 0 for oldest point
+            const hueOffset = this.points.length - 1 - i;
             this.ctx.fillStyle = `hsl(${(this.headHue + hueOffset) % 360}, 100%, 50%)`;
-            // Largest circle at front of array (newest point)
             const maxRadius = 20;
-            const progress = (this.points.length - 1 - i) / (this.points.length - 1); // 1 for oldest, 0 for newest
+            const progress = (this.points.length - 1 - i) / (this.points.length - 1);
             const radius = maxRadius * (1 - progress);
             this.ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
             this.ctx.fill();
+        }
+    }
+    // Add cleanup method
+    dispose() {
+        if (this.pollTimer !== null) {
+            window.clearInterval(this.pollTimer);
         }
     }
 }
