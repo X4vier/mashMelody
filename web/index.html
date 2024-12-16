@@ -12,13 +12,31 @@
         display: block;
         background: #000;
       }
+      #exit-hint {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        color: white;
+        font-family: sans-serif;
+        font-size: 14px;
+        opacity: 0.7;
+        pointer-events: none;
+        display: none; /* Hidden by default */
+      }
     </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
+    <div id="exit-hint">type "exit" to close the program</div>
     <script type="module">
       import { MouseTrailEffect } from "./mouseTrail.js";
+
       document.addEventListener("DOMContentLoaded", () => {
+        // Show exit hint only in Electron environment
+        if (window.process && window.process.type === "renderer") {
+          document.getElementById("exit-hint").style.display = "block";
+        }
+
         new MouseTrailEffect("canvas");
       });
     </script>
