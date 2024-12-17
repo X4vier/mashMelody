@@ -60,7 +60,8 @@ export class Game {
             }
         });
         // Handle keyboard events
-        document.addEventListener("keypress", (e) => {
+        document.addEventListener("keydown", (e) => {
+            e.preventDefault();
             this.keyboardEffect.handleKeyPress(e);
         });
     }

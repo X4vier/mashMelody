@@ -1,3 +1,4 @@
+import { keyPositions } from "./keyPositions.js";
 export class KeyboardEffect {
     constructor(ctx) {
         this.letters = [];
@@ -5,8 +6,18 @@ export class KeyboardEffect {
         this.ctx = ctx;
     }
     handleKeyPress(e) {
+        const key = e.key.toLowerCase();
+        console.log(key);
+        const xPosition = keyPositions[key] ?? 0.5;
+        // Draw a vertical line at the key position
+        this.ctx.beginPath();
+        this.ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        this.ctx.lineWidth = 2;
+        this.ctx.moveTo(xPosition * this.ctx.canvas.width, 0);
+        this.ctx.lineTo(xPosition * this.ctx.canvas.width, this.ctx.canvas.height);
+        this.ctx.stroke();
         const position = {
-            x: Math.random() * this.ctx.canvas.width,
+            x: xPosition * this.ctx.canvas.width,
             y: Math.random() * this.ctx.canvas.height,
         };
         this.letters.push({

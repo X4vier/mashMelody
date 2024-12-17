@@ -83,7 +83,8 @@ export class Game {
     });
 
     // Handle keyboard events
-    document.addEventListener("keypress", (e: KeyboardEvent) => {
+    document.addEventListener("keydown", (e: KeyboardEvent) => {
+      e.preventDefault();
       this.keyboardEffect.handleKeyPress(e);
     });
   }
