@@ -9,7 +9,6 @@ dist/
 build/
 
 # Icons
-icon_generation/
 icon.iconset/
 
 # Environment variables
