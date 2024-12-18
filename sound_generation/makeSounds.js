@@ -26,6 +26,9 @@ const notes = [
   "E7",
   "F7",
   "G7",
+  "A7",
+  "B7",
+  "C8",
 ];
 
 const cMajorScale = Object.fromEntries(
@@ -45,6 +48,15 @@ const chords = {
   V4: ["G2", "G3", "C4", "D3"], // G (V) - root position with lower root
   V: ["G2", "G3", "B3", "D3"], // G (V) - root position with lower root
   vi: ["A2", "C4", "E3", "G3"], // Am7 (vi) - root position with lower root and seventh
+};
+
+// Define breathy pad chords in higher register
+const padChords = {
+  I: ["C4", "E4"], // C major
+  IV: ["F4", "A4"], // F major
+  V: ["G4", "B4"], // G major
+  vi: ["A4", "C5"], // A minor
+  ii: ["D4", "F4"], // D minor
 };
 
 // Create separate settings for notes and chords
@@ -73,16 +85,32 @@ const chordSynthSettings = {
   },
 };
 
-// Create two separate synthesizers with reduced volume
+const padSynthSettings = {
+  envelope: {
+    attack: 0.1,
+    decay: 0.2,
+    sustain: 0.3,
+    release: 0.8,
+  },
+  oscillator: {
+    type: "sine",
+  },
+};
+
+// Create synthesizers with reduced volume
 const noteSynth = new Tone.PolySynth(Tone.Synth).toDestination();
 noteSynth.volume.value = -12; // Adjust volume for xylophone
 
 const chordSynth = new Tone.PolySynth(Tone.Synth).toDestination();
 chordSynth.volume.value = -20; // Keep chord volume the same
 
+const padSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+padSynth.volume.value = -25;
+
 // Configure the synths with their respective settings
 noteSynth.set(noteSynthSettings);
 chordSynth.set(chordSynthSettings);
+padSynth.set(padSynthSettings);
 
 // Add a bandpass filter specifically for the xylophone sound
 const xyloFilter = new Tone.Filter({
@@ -101,7 +129,19 @@ const xyloReverb = new Tone.Reverb({
 // Keep original effects for chords
 const chordReverb = new Tone.Reverb({
   decay: 2,
-  wet: 0.2,
+  wet: 0.5,
+}).toDestination();
+
+// Add pad-specific effects
+const padReverb = new Tone.Reverb({
+  decay: 4,
+  wet: 0.6,
+}).toDestination();
+
+const padChorus = new Tone.Chorus({
+  frequency: 1.5,
+  depth: 0.5,
+  wet: 0.5,
 }).toDestination();
 
 const delay = new Tone.FeedbackDelay({
@@ -113,6 +153,7 @@ const delay = new Tone.FeedbackDelay({
 // Add limiters to prevent clipping
 const noteLimiter = new Tone.Limiter(-3).toDestination();
 const chordLimiter = new Tone.Limiter(-3).toDestination();
+const padLimiter = new Tone.Limiter(-3).toDestination();
 
 // Connect the synths through their respective effect chains
 noteSynth.connect(noteLimiter);
@@ -122,6 +163,10 @@ xyloFilter.connect(xyloReverb);
 chordSynth.connect(chordLimiter);
 chordLimiter.connect(chordReverb);
 chordLimiter.connect(delay);
+
+padSynth.connect(padLimiter);
+padLimiter.connect(padReverb);
+padLimiter.connect(padChorus);
 
 // Function to play chord with staggered notes
 async function playChord(chord, duration) {
@@ -136,10 +181,12 @@ async function playChord(chord, duration) {
   });
 }
 
-async function recordAudio(note, duration = 1) {
+async function recordAudio(note, duration = 1, synth = "note") {
   const recorder = new Tone.Recorder();
 
-  if (Array.isArray(note)) {
+  if (synth === "pad") {
+    padSynth.connect(recorder);
+  } else if (Array.isArray(note)) {
     chordSynth.connect(recorder);
   } else {
     noteSynth.connect(recorder);
@@ -148,7 +195,9 @@ async function recordAudio(note, duration = 1) {
   recorder.start();
 
   await Tone.start();
-  if (Array.isArray(note)) {
+  if (synth === "pad") {
+    padSynth.triggerAttackRelease(note, duration);
+  } else if (Array.isArray(note)) {
     await playChord(note, duration);
   } else {
     const originalVolume = noteSynth.volume.value;
@@ -167,9 +216,12 @@ async function recordAudio(note, duration = 1) {
 
   return {
     blob: recording,
-    filename: Array.isArray(note)
-      ? `chord_${note.join("_")}.wav`
-      : `note_${note.note.replace("#", "sharp")}.wav`,
+    filename:
+      synth === "pad"
+        ? `pad_chord_${note.join("_")}.wav`
+        : Array.isArray(note)
+        ? `chord_${note.join("_")}.wav`
+        : `note_${note.note.replace("#", "sharp")}.wav`,
   };
 }
 
@@ -179,24 +231,49 @@ async function generateAllNotes() {
   button.disabled = true;
   button.textContent = "Generating...";
 
+  const includeNotes = document.querySelector("#includeNotes").checked;
+  const includeChords = document.querySelector("#includeChords").checked;
+  const includePadChords = document.querySelector("#includePadChords").checked;
+
+  if (!includeNotes && !includeChords && !includePadChords) {
+    alert("Please select at least one type of sound to generate");
+    button.disabled = false;
+    button.textContent = "Download audio files";
+    return;
+  }
+
   try {
     await Tone.start();
     const zip = new JSZip();
 
-    // Record notes
-    for (const note of Object.values(cMajorScale)) {
-      button.textContent = `Recording ${note.note}...`;
-      const recording = await recordAudio(note, 1);
-      zip.file(recording.filename, recording.blob);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+    // Record notes using note synth
+    if (includeNotes) {
+      for (const note of Object.values(cMajorScale)) {
+        button.textContent = `Recording ${note.note}...`;
+        const recording = await recordAudio(note, 1, "note"); // Use note synth
+        zip.file(recording.filename, recording.blob);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
     }
 
-    // Record chords
-    for (const [chordName, chord] of Object.entries(chords)) {
-      button.textContent = `Recording ${chordName} chord...`;
-      const recording = await recordAudio(chord, 4);
-      zip.file(recording.filename, recording.blob);
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+    // Record chords using note synth
+    if (includeChords) {
+      for (const [chordName, chord] of Object.entries(chords)) {
+        button.textContent = `Recording ${chordName} chord...`;
+        const recording = await recordAudio(chord, 4, "note"); // Use note synth
+        zip.file(recording.filename, recording.blob);
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+    }
+
+    // Record pad chords using pad synth
+    if (includePadChords) {
+      for (const [chordName, chord] of Object.entries(padChords)) {
+        button.textContent = `Recording pad ${chordName} chord...`;
+        const recording = await recordAudio(chord, 1.5, "pad"); // Use pad synth
+        zip.file(`pad_${recording.filename}`, recording.blob);
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
     }
 
     // Generate and download ZIP
@@ -234,6 +311,38 @@ function createUI() {
   generateButton.textContent = "Download audio files";
   generateButton.onclick = generateAllNotes;
 
+  // Download options
+  const downloadOptions = document.createElement("div");
+  downloadOptions.style.marginTop = "10px";
+  downloadOptions.style.marginBottom = "20px";
+
+  const createCheckbox = (id, label) => {
+    const div = document.createElement("div");
+    div.style.display = "inline-block";
+    div.style.margin = "0 10px";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = id;
+    checkbox.checked = true;
+
+    const labelElement = document.createElement("label");
+    labelElement.htmlFor = id;
+    labelElement.textContent = label;
+
+    div.appendChild(checkbox);
+    div.appendChild(labelElement);
+    return div;
+  };
+
+  downloadOptions.appendChild(createCheckbox("includeNotes", "Include Notes"));
+  downloadOptions.appendChild(
+    createCheckbox("includeChords", "Include Chords")
+  );
+  downloadOptions.appendChild(
+    createCheckbox("includePadChords", "Include Pad Chords")
+  );
+
   // Preview section
   const previewSection = document.createElement("div");
   previewSection.style.marginTop = "20px";
@@ -269,6 +378,21 @@ function createUI() {
   });
   previewSection.appendChild(chordSection);
 
+  // Preview buttons for pad chords
+  const padSection = document.createElement("div");
+  padSection.style.marginTop = "20px";
+  Object.entries(padChords).forEach(([chordName, chord]) => {
+    const button = document.createElement("button");
+    button.textContent = `Pad ${chordName.toUpperCase()}`;
+    button.style.margin = "5px";
+    button.onclick = () => {
+      Tone.start();
+      padSynth.triggerAttackRelease(chord, "1.5"); // Reduced from 4 to 1.5 seconds
+    };
+    padSection.appendChild(button);
+  });
+  previewSection.appendChild(padSection);
+
   // Synth controls
   const controls = document.createElement("div");
   controls.style.marginTop = "20px";
@@ -294,6 +418,7 @@ function createUI() {
   controls.appendChild(createLabel("Oscillator Type: ", oscSelector));
 
   container.appendChild(generateButton);
+  container.appendChild(downloadOptions);
   container.appendChild(previewSection);
   container.appendChild(controls);
   document.body.appendChild(container);

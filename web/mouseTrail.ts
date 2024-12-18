@@ -63,6 +63,8 @@ export class MouseTrailEffect {
   }
 
   public draw(): void {
+    const originalFillStyle = this.ctx.fillStyle;
+
     for (let i = 0; i < this.points.length; i++) {
       const point = this.points[i];
 
@@ -80,5 +82,7 @@ export class MouseTrailEffect {
       this.ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
       this.ctx.fill();
     }
+
+    this.ctx.fillStyle = originalFillStyle;
   }
 }

@@ -1,5 +1,6 @@
 import { MouseTrailEffect } from "./mouseTrail.js";
-import { KeyboardEffect } from "./keyboard.js";
+import { SoundEffect } from "./sound.js";
+import { KeyboardVisuals } from "./keyboardVisuals.js";
 
 export type Point = {
   x: number;
@@ -14,7 +15,8 @@ export class Game {
   private lastMousePosition: Point | null = null;
 
   private mouseTrail: MouseTrailEffect;
-  private keyboardEffect: KeyboardEffect;
+  private soundEffect: SoundEffect;
+  private keyboardVisuals: KeyboardVisuals;
 
   constructor(canvasId: string) {
     this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -24,7 +26,8 @@ export class Game {
     }
     this.ctx = context;
     this.mouseTrail = new MouseTrailEffect(context);
-    this.keyboardEffect = new KeyboardEffect(context);
+    this.soundEffect = new SoundEffect();
+    this.keyboardVisuals = new KeyboardVisuals(context);
     this.setupCanvas();
     this.bindEvents();
     this.startPolling();
@@ -33,7 +36,8 @@ export class Game {
 
   private loop(): void {
     this.mouseTrail.loop();
-    this.keyboardEffect.loop();
+    this.soundEffect.loop();
+    this.keyboardVisuals.loop();
 
     this.draw();
     window.requestAnimationFrame(this.loop.bind(this));
@@ -85,23 +89,31 @@ export class Game {
     // Handle keyboard events
     document.addEventListener("keydown", (e: KeyboardEvent) => {
       e.preventDefault();
-      this.keyboardEffect.handleKeyPress(e);
+      this.soundEffect.handleKeyPress(e);
+      this.keyboardVisuals.handleKeyPress(e);
+    });
+
+    // Handle mouse clicks
+    document.addEventListener("click", () => {
+      this.soundEffect.handleMouseClick();
     });
   }
 
   private handleMouseMove(e: MouseEvent): void {
     this.mouseTrail.addPoints(e.clientX, e.clientY);
-    this.draw();
   }
 
   private draw(): void {
     // Clear canvas with fade effect
+    const originalFillStyle = this.ctx.fillStyle;
     this.ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillStyle = originalFillStyle;
 
-    // Draw trail
+    // Draw effects
+    this.soundEffect.draw();
+    this.keyboardVisuals.draw();
     this.mouseTrail.draw();
-    this.keyboardEffect.draw();
   }
 
   // Add cleanup method

@@ -1,5 +1,6 @@
 import { MouseTrailEffect } from "./mouseTrail.js";
-import { KeyboardEffect } from "./keyboard.js";
+import { SoundEffect } from "./sound.js";
+import { KeyboardVisuals } from "./keyboardVisuals.js";
 export class Game {
     constructor(canvasId) {
         this.pollInterval = 16; // ~60fps
@@ -12,7 +13,8 @@ export class Game {
         }
         this.ctx = context;
         this.mouseTrail = new MouseTrailEffect(context);
-        this.keyboardEffect = new KeyboardEffect(context);
+        this.soundEffect = new SoundEffect();
+        this.keyboardVisuals = new KeyboardVisuals(context);
         this.setupCanvas();
         this.bindEvents();
         this.startPolling();
@@ -20,7 +22,8 @@ export class Game {
     }
     loop() {
         this.mouseTrail.loop();
-        this.keyboardEffect.loop();
+        this.soundEffect.loop();
+        this.keyboardVisuals.loop();
         this.draw();
         window.requestAnimationFrame(this.loop.bind(this));
     }
@@ -62,20 +65,27 @@ export class Game {
         // Handle keyboard events
         document.addEventListener("keydown", (e) => {
             e.preventDefault();
-            this.keyboardEffect.handleKeyPress(e);
+            this.soundEffect.handleKeyPress(e);
+            this.keyboardVisuals.handleKeyPress(e);
+        });
+        // Handle mouse clicks
+        document.addEventListener("click", () => {
+            this.soundEffect.handleMouseClick();
         });
     }
     handleMouseMove(e) {
         this.mouseTrail.addPoints(e.clientX, e.clientY);
-        this.draw();
     }
     draw() {
         // Clear canvas with fade effect
+        const originalFillStyle = this.ctx.fillStyle;
         this.ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        // Draw trail
+        this.ctx.fillStyle = originalFillStyle;
+        // Draw effects
+        this.soundEffect.draw();
+        this.keyboardVisuals.draw();
         this.mouseTrail.draw();
-        this.keyboardEffect.draw();
     }
     // Add cleanup method
     dispose() {
